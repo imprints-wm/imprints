@@ -92,4 +92,4 @@ See `deploy_many_logos.sh` and `deploy_many_logos.py` for detailed definitions o
 
 # Char concatenation
 
-You can use `concat.py` to concatenate you pre-trained characters into a `.png` image, thus you can use it as a logo for deployment afterwards.
+You can use `concat.py` to concatenate you pre-trained characters into a `.png` image, such that you can use it as a logo for deployment afterwards.
