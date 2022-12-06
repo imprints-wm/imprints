@@ -38,7 +38,7 @@ if [ "$model" == "bvmr" ];then
     --standard_transform 0 > $log_name &
 elif [ "$model" == "slbr" ];then
     python train.py --model slbr \
-    --model_path /home/imprints/Imprints/watermark_removal_works/SLBR/pretrained_model/model_best.pth.tar \
+    --model_path ./watermark_removal_works/SLBR/pretrained_model/model_best.pth.tar \
     --transparences 0.3 0.5 0.7 \
     --output_dir ./adv_wm_pics/ \
     --text "S&P" \

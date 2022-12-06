@@ -79,7 +79,7 @@ for sidx, target_string in enumerate(strings):
 
     whole_string = whole_string.cpu().numpy()
     whole_string = np.transpose(whole_string, (1, 2, 0)) * 255
-    alpha = (whole_string.sum(axis=-1, keepdims=True)>0)*int(255*0.7)
+    alpha = (whole_string.sum(axis=-1, keepdims=True)>0)*int(255*1)
     print(whole_string.shape, alpha.shape)
     whole_string = np.concatenate([whole_string,alpha], axis=-1)
     cv2.imwrite(save_path+f'{sidx+1}.png', whole_string)
