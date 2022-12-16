@@ -1,12 +1,12 @@
 #!/bin/bash
 
-rm /home/imprints/Imprints/wm_adv_0.png
-rm /home/imprints/Imprints/wm_adv_0.pt
-rm /home/imprints/Imprints/wm_adv_mask_0.pt
-rm /home/imprints/Imprints/ckpt_wm/slbr/wm_adv_0.pt
-rm /home/imprints/Imprints/ckpt_wm/slbr/wm_adv_best.png
-rm /home/imprints/Imprints/ckpt_wm/slbr/wm_adv_latest.png
-rm /home/imprints/Imprints/ckpt_wm/slbr/wm_adv_mask_end.pt
+rm ./wm_adv_0.png
+rm ./wm_adv_0.pt
+rm ./wm_adv_mask_0.pt
+rm ./ckpt_wm/slbr/wm_adv_0.pt
+rm ./ckpt_wm/slbr/wm_adv_best.png
+rm ./ckpt_wm/slbr/wm_adv_latest.png
+rm ./ckpt_wm/slbr/wm_adv_mask_end.pt
 
 
 time=$(date "+%Y-%m-%d-%H-%M-%S")

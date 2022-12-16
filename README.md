@@ -41,7 +41,7 @@ The main code for logo training is `train_logo.py`. Below is an example for trai
 
 ## string training
 
-The main code for string training is `train_char.py`. Below is an example for training a character or string input. The only difference is that the `--logo_path` is replaced by `--text` and `--text_size`.
+The main code for string training is `train.py`. Below is an example for training a character or string input. The only difference is that the `--logo_path` is replaced by `--text` and `--text_size`.
 
 ```shell
     python train.py \
