@@ -48,7 +48,7 @@ def read_tensor(data_item, standard_transform, add_dim=True):
     return im_ts, bg, mask, wm
 
 
-# 保存生成的对抗样本图片
+# Save the pictures
 def save_adv_pic(path, image_lis, mask_lis, standard_transform, bg_lis, filename_list=None, train=True):
     if train:
         wm_pic_dir = path + "Watermarked_image"
@@ -141,7 +141,6 @@ def shrink_img(img_ts, size_proportion, standard_transform):
     h, w = img_ts.shape[1:]
     h_resize, w_resize = h * size_proportion[0], w * size_proportion[1]
 
-    # TODO: TF.resize()
     res = T.Resize(size=[int(h_resize), int(w_resize)])(img_ts)
     padding_l = (w - w_resize) // 2
     padding_r = w - w_resize - padding_l + 1 
@@ -173,14 +172,14 @@ def deploy_wm(
     wm, mask, bg, opacity, size_proportion, position, rotation_angle, standard_transform
 ):
     """
-    wm: tensor whose shape is (3, height, width) 
-    bg: similar to wm
-    opacity: num in range [0,1]
+                 wm: tensor whose shape is (3, height, width) 
+                 bg: similar to wm
+            opacity: num in range [0,1]
     size_proportion: tuple of proportions -> (height_proportion[0,1], width_proportion[0,1])
-    position: tuple of moved steps (tx, ty)
-    rotation_angle:  
+           position: tuple of moved steps (tx, ty)
+    `rotation_angle:  
 
-    return=>
+    return =>
     ultimate_im_ts: watermarked image whose shape is (3, height, width)
     ultimate_wm_ts: transformed watermark whose shape is (3, height, width)
     ultimate_mask0: transformed mask whose shape is (3, height, width)

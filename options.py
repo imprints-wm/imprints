@@ -23,7 +23,7 @@ class Options:
 
     def train(self):
 
-        # Target model(s) information, TODO: multiple target model
+        # Target model(s) information
         self.parser.add_argument(
             "--model",
             type=str,
@@ -195,7 +195,7 @@ class Options:
 
 
     def test(self):
-        # Target model(s) information, TODO: multiple target model
+        # Target model(s) information
         self.parser.add_argument(
             "--model",
             type=str,

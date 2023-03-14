@@ -57,7 +57,6 @@ def valid_noise(
 
         mask_loss = bce(guess_mask, masks)
         pixel_loss = torch.abs(wm - wm_ori).mean()
-        # refine_loss = torch.abs(reconstructed_images - inputs).mean()
         refine_loss = (
                     torch.abs((reconstructed_images - inputs) * masks)
                     / torch.sum(masks == 1, dim=(1, 2, 3), keepdim=True)
@@ -103,10 +102,6 @@ def build_noise(
     # training host images
     data_lis = data_lis[:sample_num]
 
-    # Abandoned
-    # masks = [mask for _ in range(batch_size * len(transparences))]  # 处理masks，以便后面求Loss
-    # masks = torch.stack(masks, dim=0)
-
     # initial watermark
     wm_ori = wm.clone().detach()
 
@@ -134,14 +129,12 @@ def build_noise(
 
         for j in range(sample_num // batch_size):
             # a batch of host images, batchsize * transparences
-            # transparences should not be placed here
             bgs = [ # [1, 3, 256, 256]
                 read_tensor(
                     data_lis[i + j * batch_size],
                     standard_transform=(min_val != -1),
                     add_dim=True,
                 )[1].to(device)
-                # for t in range(len(transparences))    # Abandoned
                 for i in range(batch_size)
             ]
 
@@ -149,11 +142,6 @@ def build_noise(
                 # requires_grad
                 wm.requires_grad = True
 
-                # EOT here, (wm, mask)
-                # TODO: wm transpose to [1, 3, H, W], mask [1, 1, H, W]
-                # concat wm and mask, wm_mask [1, 4, H, W]
-                # wm - n * t(wm)
-                # wm_eot = [wm0, ...] batch wms
                 wm_mask = (
                     torch.cat((wm, mask), dim=0)
                     .unsqueeze(0)
@@ -168,26 +156,11 @@ def build_noise(
                 ]  # do not transform mask
                 trans_eot = [torch.rand(1).to(device) * 0.6 + 0.2 for _ in range(len(wm_eot))]
 
-                # for eot_i in range(batch_size):
-                #     cv2.imwrite(f'/home/imprints/Imprints/test_mask_{eot_i+1}.png', (mask_eot[eot_i][0].permute(1,2,0)*255).detach().cpu().numpy())
-                #     cv2.imwrite(f'/home/imprints/Imprints/test_wm_{eot_i+1}.png', (wm_eot[eot_i][0].permute(1,2,0)*255).detach().cpu().numpy())
-                
-                # watermarking (batch), transparences
                 images = []
                 for i in range(batch_size):
-                    # print(mask_eot[0].shape)
-                    # alpha_matte = trans_eot[i] * mask_eot[i]
                     images.append(bgs[i] * ((1 - mask_eot[i]) + mask_eot[i] * trans_eot[i])
                                     + wm_eot[i] * mask_eot[i] * (1 - trans_eot[i]))
 
-                # images = [
-                #     # (1 - (1-trans) * mask) * bgs + mask * (1-trans) * wm
-                #     # (1 - alpha * mask) * bgs + mask * alpha * wm
-                #     bgs[i] * ((1 - mask) + mask * transparence)
-                #     + wm * mask * (1 - transparence)
-                #     for transparence in transparences
-                #     for i in range(batch_size)
-                # ]
                 inputs = torch.vstack(images)
                 mask_eot = torch.vstack(mask_eot)
 
@@ -195,11 +168,6 @@ def build_noise(
                 # guess_images: [batch, 3, 256, 256]
                 guess_images, guess_mask = process_model_output(outputs, model_name)
                 model.model.zero_grad()
-                # print('==> ims shape:',guess_images[0].shape)
-                # print('==> mask shape:',guess_mask[0].shape)
-
-                # Is it all the watermark removal methods process results in this way?
-                # Yes.
                 expanded_guess_mask = guess_mask.repeat(1, 3, 1, 1)
                 reconstructed_pixels = guess_images * expanded_guess_mask
                 reconstructed_images = (
@@ -210,9 +178,6 @@ def build_noise(
                 area = ((guess_mask==1)+(mask_eot==1))>=1
                 mask_loss = bce(guess_mask[area], 
                                 mask_eot[area])
-                # TODO: dont simply maximize the values of wm
-                # It contradicts the cliping [-eps, eps] part
-                # pixel_loss = (wm * mask).mean()
                 pixel_loss = torch.abs(wm - wm_ori).mean()
                 consistent_loss = (
                                 wm[0:1,:,:][mask==1].std()
@@ -220,24 +185,11 @@ def build_noise(
                                 + wm[2:3,:,:][mask==1].std()
                                 )/3
 
-                # TODO: use l1-norm or l2-norm?
                 refine_loss = (
                     torch.abs((reconstructed_images - inputs) * mask_eot).sum(dim=(1, 2, 3))
                     / torch.sum(mask_eot == 1, dim=(1, 2, 3))
                 ).mean()
 
-                # TODO: a stability loss
-                # stability_loss = || jacobian(func, value) ||_p
-                # stability_loss = torch.sum(torch.abs(
-                #                     jacobian(
-                #                         model.endtoend_func, 
-                #                         inputs, 
-                #                         create_graph=False, 
-                #                         strict=True, 
-                #                         vectorize=False, 
-                #                         strategy='reverse-mode'
-                #                     )
-                #                 ))
                 noise = (torch.randn(inputs.size())*1/255).to(device)
                 est_grad = (model.endtoend_func(inputs+noise)-model.endtoend_func(inputs-noise))\
                                     /(2*noise+1e-6)
@@ -263,13 +215,9 @@ def build_noise(
                 if total_loss.item() < loss_threshold:
                     break
 
-                # TODO: why .mean()? wm.grad should have the same size as wm
                 sign = wm.grad.sign()  # .mean()
-                # TODO: change to gradient descent
-                # minus -
                 wm_adv = wm - alpha * sign * mask
 
-                # TODO: eps = n/255
                 eta = torch.clamp(wm_adv - wm_ori, min=-eps, max=eps)
                 wm = torch.clamp(wm_ori + eta, min=min_val, max=1).detach_()
 
@@ -290,6 +238,7 @@ def build_noise(
             min_val=min_val,
             device=device,
         )
+
         # save if it is a better result, lower loss is better
         if not os.path.exists(dir_path):
             os.mkdir(dir_path)
@@ -323,12 +272,9 @@ def build_noise(
 
     if is_save:
 
-        # TODO: it is redundant?
         wm_adv = torch.clamp(wm, min=min_val, max=1).detach_()
         torch.save(wm_adv, "wm_adv_0.pt")
         torch.save(mask, "wm_adv_mask_0.pt")
-        # print("==> DEBUG",min_val)
-        # print(wm_adv)
         if min_val == -1:
             wm_adv = (wm_adv) / 2 + 0.5
         wm_adv = wm_adv.cpu().numpy()

@@ -22,7 +22,6 @@ def main():
     print()
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
-    # device = torch.device("cuda:0")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     if args.standard_transform:
@@ -31,7 +30,6 @@ def main():
         min_val, max_val = -1, 1
 
     # Different models
-    # TODO: ensemble models, e.g., args.model = ['bvmr', 'slbr']
     if args.model=='bvmr':
         gt_model = bvmr(args=args, device=device)
     elif args.model=='slbr':
@@ -42,7 +40,6 @@ def main():
         print("This model({}) doesn't support currently!".format(args.model))
         sys.exit(1)
 
-    # TODO: args.data_root
     data_root = "./datasets/CLWD/train"
     wm_path = "%s/Watermark" % (data_root)
     mask_path = "%s/Mask" % (data_root)
@@ -58,7 +55,6 @@ def main():
         shuffle=False,
     )
 
-    # patch, mask = gen_wm(text=args.text, text_size=args.text_size, standard_norm=args.standard_transform, device=device)
     # load the logo image and the mask here
     patch, mask = load_logo(logo_path=args.logo_path, 
                             standard_norm=args.standard_transform, 
@@ -66,10 +62,6 @@ def main():
     print('==> patch:', patch.size())
     print('==> mask:', mask.size())
 
-    # if os.path.exists(path="wm_adv_0.pt"):
-    #     eta = torch.load("wm_adv_0.pt")
-    #     mask = torch.load("wm_adv_mask_0.pt")
-    # else:
     eta = build_noise(
                 model=gt_model,
                 model_name=args.model,
@@ -106,12 +98,6 @@ def main():
                             shear=0) 
                             for j in range(N_imgs)]
     
-    # rotated_etas = [(rotate_img_ts(eta, ang, args.standard_transform), 
-    #                 rotate_img_ts(mask, ang, args.standard_transform)) 
-    #                     for ang in angles
-    #                 ]
-    # moved_etas = [transform_pos(eta, mask, device) for eta, mask in rotated_etas]
-    # moved_etas = [(eta, mask) for eta, mask in rotated_etas]
     etas = [wm_mask_affine[j][:3, :, :] for j in range(N_imgs)]
     masks = [wm_mask_affine[j][3:, :, :].repeat(3,1,1) for j in range(N_imgs)]
 

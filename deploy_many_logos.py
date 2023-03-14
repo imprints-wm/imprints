@@ -1,16 +1,16 @@
+import torchvision.transforms.functional as TF
 import argparse
 import os
 import sys
 import torch
 from options import Options
 from src.utils.data_process import get_data_list
-from src.models import bvmr,slbr,split
+from src.models import bvmr, slbr, split
 from src.utils.train_utils_adam_l2 import build_noise
 from src.utils.watermark_gen import gen_wm, load_logo
 from src.utils.image_process import read_tensor, save_adv_pic, transform_pos, rotate_img_ts
 torch.set_printoptions(profile="full")
 
-import torchvision.transforms.functional as TF
 
 def main():
     parser = Options(is_train=True).parser
@@ -30,19 +30,6 @@ def main():
     else:
         min_val, max_val = -1, 1
 
-    # Different models
-    # TODO: ensemble models, e.g., args.model = ['bvmr', 'slbr']
-    # if args.model=='bvmr':
-    #     gt_model = bvmr(args=args, device=device)
-    # elif args.model=='slbr':
-    #     gt_model = slbr(args=args, device=device)
-    # elif args.model=='split':
-    #     gt_model = split(args=args, device=device)
-    # else:
-    #     print("This model({}) doesn't support currently!".format(args.model))
-    #     sys.exit(1)
-
-    # TODO: args.data_root
     data_root = "./datasets/CLWD/test"
     # data_root = "/home/public/imprints/exp_data/vaccine0"
     print("Adding wms to", data_root)
@@ -64,13 +51,12 @@ def main():
         shuffle=False,
     )
 
-    change_pos = True if args.change_pos.lower()=="true" else False
-    change_siz = True if args.change_siz.lower()=="true" else False
-    change_ang = True if args.change_ang.lower()=="true" else False
-    change_opa = True if args.change_opa.lower()=="true" else False
-    add_noise = True if args.add_noise.lower()=="true" else False
-    random_opa = True if args.random_opa.lower()=="true" else False
-
+    change_pos = True if args.change_pos.lower() == "true" else False
+    change_siz = True if args.change_siz.lower() == "true" else False
+    change_ang = True if args.change_ang.lower() == "true" else False
+    change_opa = True if args.change_opa.lower() == "true" else False
+    add_noise = True if args.add_noise.lower() == "true" else False
+    random_opa = True if args.random_opa.lower() == "true" else False
 
     print('change_pos', change_pos)
     print('change_siz', change_siz)
@@ -79,49 +65,40 @@ def main():
     print('add_noise', add_noise)
     print('random_opa', random_opa)
 
-
-    # patch, mask = gen_wm(text=args.text, text_size=args.text_size, standard_norm=args.standard_transform, device=device)
-    # load the logo image and the mask here
-    # patch, mask = load_logo(logo_path=args.logo_path, 
-    #                         standard_norm=args.standard_transform, 
-    #                         device=device)
-    # print('==> patch:', patch.size())
-    # print('==> mask:', mask.size())
-
-    # if os.path.exists(path="wm_adv_0.pt"):
-
     # the order of the optimized watermarks
     if os.path.exists(args.logo_path+"/"+os.listdir(args.logo_path)[0]+"/wm_adv_0.pt"):
         logo_dirs = os.listdir(args.logo_path)
         logo_dirs.sort()
     else:
-    # the order of the original watermarks should be changed
-        logo_dirs = list(range(10,20)) + [1] \
-                    + list(range(20,30)) + [2] \
-                    + list(range(30,40)) + [3] \
-                    + [40] + list(range(4, 10))
-        logo_dirs = [str(idx)+'.png' for idx in logo_dirs][:len(os.listdir(args.logo_path))]
-
+        # the order of the original watermarks should be changed
+        logo_dirs = list(range(10, 20)) + [1] \
+            + list(range(20, 30)) + [2] \
+            + list(range(30, 40)) + [3] \
+            + [40] + list(range(4, 10))
+        logo_dirs = [
+            str(idx)+'.png' for idx in logo_dirs][:len(os.listdir(args.logo_path))]
 
     for idx, logo_dir in enumerate(logo_dirs):
         if os.path.exists(args.logo_path+"/"+logo_dir+"/wm_adv_0.pt"):
             eta = torch.load(args.logo_path+"/"+logo_dir+"/wm_adv_0.pt")
-            mask = torch.load(args.logo_path+"/"+logo_dir+"/wm_adv_mask_end.pt")
+            mask = torch.load(args.logo_path+"/"+logo_dir +
+                              "/wm_adv_mask_end.pt")
         else:
-            eta, mask = load_logo(logo_path=args.logo_path+"/"+logo_dir, 
-                                standard_norm=args.standard_transform, 
-                                device=device)
+            eta, mask = load_logo(logo_path=args.logo_path+"/"+logo_dir,
+                                  standard_norm=args.standard_transform,
+                                  device=device)
         print('==> patch:', eta.size())
         print('==> mask:', mask.size())
 
         if add_noise:
-            # eps = 8/255
-            # noise = (torch.rand(eta.size())*2*eps-eps).to(device)
-            noise = torch.clamp((torch.randn(eta.size())*0.05).to(device), min=-0.2, max=0.2)
+            noise = torch.clamp(
+                (torch.randn(eta.size())*0.05).to(device), min=-0.2, max=0.2)
             eta = torch.clamp(eta+noise, min=0, max=1)
 
-            print("noise: {:.3f}-{:.3f}".format(noise.max().item(), noise.min().item()))
-            print("eta: {:.3f}-{:.3f}".format(eta.max().item(), eta.min().item()))
+            print(
+                "noise: {:.3f}-{:.3f}".format(noise.max().item(), noise.min().item()))
+            print(
+                "eta: {:.3f}-{:.3f}".format(eta.max().item(), eta.min().item()))
             eta = torch.clamp(eta + noise, min=0, max=1)
         else:
             pass
@@ -136,7 +113,8 @@ def main():
             opa_end = 0.8
             trans_start = 1-opa_end
             trans_end = 1-opa_start
-            print(f"opacity: {opa_start}-{opa_end}", f"trans: {trans_start}-{trans_end}")
+            print(f"opacity: {opa_start}-{opa_end}",
+                  f"trans: {trans_start}-{trans_end}")
             transpar = torch.linspace(trans_start, trans_end, N_imgs)
         else:
             opa = 1-args.opa_value
@@ -157,7 +135,6 @@ def main():
                 trans = torch.ones(mask.size())*opa
                 trans += delta_opa
                 transpar.append(trans.to(device))
-            
 
         if change_ang:
             angles = torch.linspace(-45, 45, N_imgs).numpy()
@@ -175,40 +152,40 @@ def main():
             sizes = torch.linspace(0.8, 1.2, N_imgs).numpy()
         else:
             # sizes = torch.linspace(1, 1, N_imgs).numpy()
-            sizes = torch.linspace(args.size_value, args.size_value, N_imgs).numpy()
+            sizes = torch.linspace(
+                args.size_value, args.size_value, N_imgs).numpy()
+
 
 
         wm_mask = torch.vstack([eta, mask])
-        wm_mask_affine = [TF.affine(wm_mask, 
-                                angle=int(angles[j]), 
-                                translate=(dx[j], dy[j]),
-                                scale=sizes[j],
-                                shear=0) 
-                                for j in range(N_imgs)]
-        
-        # rotated_etas = [(rotate_img_ts(eta, ang, args.standard_transform), 
-        #                 rotate_img_ts(mask, ang, args.standard_transform)) 
-        #                     for ang in angles
-        #                 ]
-        # moved_etas = [transform_pos(eta, mask, device) for eta, mask in rotated_etas]
-        # moved_etas = [(eta, mask) for eta, mask in rotated_etas]
+        wm_mask_affine = [TF.affine(wm_mask,
+                                    angle=int(angles[j]),
+                                    translate=(dx[j], dy[j]),
+                                    scale=sizes[j],
+                                    shear=0)
+                          for j in range(N_imgs)]
+
+
         etas = [wm_mask_affine[j][:3, :, :] for j in range(N_imgs)]
-        masks = [wm_mask_affine[j][3:, :, :].repeat(3,1,1) for j in range(N_imgs)]
+        masks = [wm_mask_affine[j][3:, :, :].repeat(
+            3, 1, 1) for j in range(N_imgs)]
         imgs = [torch.clamp(
-                            bgs[j] * (1 - masks[j])
-                            + bgs[j] * masks[j] * transpar[j]
-                            + etas[j] * masks[j] * (1 - transpar[j]),
-                            min=min_val,
-                            max=max_val,
-                        ).detach_()
-                        for j in range(N_imgs)
-                    ]
+            bgs[j] * (1 - masks[j])
+            + bgs[j] * masks[j] * transpar[j]
+            + etas[j] * masks[j] * (1 - transpar[j]),
+            min=min_val,
+            max=max_val,
+        ).detach_()
+            for j in range(N_imgs)
+        ]
         im_ts = torch.stack(imgs, dim=0)
+
+
         print(args.output_dir)
         save_adv_pic(
-            path=args.output_dir, 
-            image_lis=im_ts, 
-            mask_lis=list(zip(etas, masks)), 
+            path=args.output_dir,
+            image_lis=im_ts,
+            mask_lis=list(zip(etas, masks)),
             standard_transform=args.standard_transform,
             bg_lis=bgs,
             filename_list=[str(i+idx*N_imgs)+'.png' for i in range(N_imgs)]

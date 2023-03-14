@@ -1,7 +1,7 @@
 import os
 import random
 
-# 获取图片路径
+# Obtain pictures' path
 def collect_synthesized(_source, is_sort=True):
     paths = []
     for root, _, files in os.walk(_source):
@@ -23,7 +23,7 @@ def collect_synthesized(_source, is_sort=True):
         random.shuffle(paths)
     return paths
 
-# 集成数据,得到路径的字典列表
+# Get a dictionary list of paths
 def get_data_list(wm_path, mask_path, bg_path, im_path, shuffle=False):
     data_lis = []
     Wm = collect_synthesized(wm_path)
